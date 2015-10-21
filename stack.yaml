@@ -1,0 +1,5 @@
+flags: {}
+packages:
+- '.'
+extra-deps: [] # [datalog-0.2.0.2]
+resolver: lts-3.2

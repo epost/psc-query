@@ -1,0 +1,43 @@
+name:                psc-query
+version:             0.1.0.0
+synopsis:            PureScript source code knowledge extraction and querying support.
+description:         Please see README.org
+homepage:            http://github.com/epost/psc-query
+license:             MIT
+license-file:        LICENSE
+author:              Erik Post
+maintainer:          erik@shinsetsu.nl
+-- copyright:           
+category:            Web
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+  build-depends:       base >= 4.7 && < 5
+                     , purescript >= 0.7.3.0
+  default-language:    Haskell2010
+
+executable psc-query
+  hs-source-dirs:      psc-query
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , psc-query
+  default-language:    Haskell2010
+
+test-suite psc-query-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , psc-query
+                     , purescript >= 0.7.3.0
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/epost/psc-query

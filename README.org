@@ -1,0 +1,69 @@
+# #+title:psc-query
+
+* About
+
+Intended to translate PureScript programs like this:
+#+BEGIN_SRC purescript
+module Fnord.Zoink.Test1 where
+
+data Traffic = Red | Green
+
+newtype Sum a = Sum a
+
+f x = x + 1
+#+END_SRC
+
+into fact stores like the following. This initial version uses Prolog / datalog notation for now:
+
+#+BEGIN_SRC prolog
+% facts
+module("Test1").
+module("Zoink").
+module("Fnord").
+data("Traffic").
+newtype("Sum").
+value("f").
+data_ctor("Red", "Traffic").
+data_ctor("Green", "Traffic").
+data_ctor("Sum", "Sum").
+defined_in("Test1", "Zoink").
+defined_in("Zoink", "Fnord").
+defined_in("Traffic", "Test1").
+defined_in("Sum", "Test1").
+defined_in("f", "Test1").
+
+% rules
+defined_in_star(X, Y) :- defined_in(X, Y).
+defined_in_star(X, Y) :- defined_in(X, Z), defined_in_star(Z, Y).
+#+END_SRC
+
+This can be queried using various tools, for example Prolog or [[http://ysangkok.github.io/mitre-datalog.js/wrapper.html][Datalog.js]]. A query like this:
+
+#+BEGIN_SRC prolog
+defined_in_star(X, "Test1")?
+#+END_SRC
+
+would yield:
+
+#+BEGIN_SRC prolog
+% defined_in_star(X, "Test1")?
+defined_in_star(f, "Test1").
+defined_in_star("Sum", "Test1").
+defined_in_star("Traffic", "Test1").
+#+END_SRC
+
+The idea is to build tooling on top of this, such as editor support. The same can be done for languages other than PureScript.
+
+* Related work
+
+- language-specific editor support:
+  - [[https://github.com/kRITZCREEK/psc-ide][psc-ide]] (PureScript)
+  - [[https://github.com/kazu-yamamoto/ghc-mod][ghc-mod]] (Haskell)
+  - [[https://github.com/commercialhaskell/stack-ide][stack-ide]] + [[https://github.com/fpco/ide-backend][ide-backend]] (Haskell)
+  - [[https://github.com/chrisdone/ghci-ng][ghci-ng]] (Haskell)
+  - [[https://github.com/ensime][ensime]] (Scala)
+  - [[https://github.com/ElmCast/elm-oracle][elm-oracle]] (Elm)
+  - [[https://opam.ocaml.org/blog/turn-your-editor-into-an-ocaml-ide/][OCaml tooling]] (OCaml)
+- [[http://www.rascal-mpl.org/][Rascal]] metaprogramming language
+- [[https://bitbucket.org/inkytonik/monto][Monto]] language-generic editor support
+- [[https://github.com/cwi-swat/meta-environment/tree/master/toolbus-ng][Toolbus NG]] tool communication infrastructure based on ACP process algebra

@@ -58,6 +58,7 @@ The idea is to build tooling on top of this, such as editor support. The same ca
 
 - language-specific editor support:
   - [[https://github.com/kRITZCREEK/psc-ide][psc-ide]] (PureScript)
+  - [[https://github.com/haskell/haskell-ide][haskell-ide]] (Haskell)
   - [[https://github.com/kazu-yamamoto/ghc-mod][ghc-mod]] (Haskell)
   - [[https://github.com/commercialhaskell/stack-ide][stack-ide]] + [[https://github.com/fpco/ide-backend][ide-backend]] (Haskell)
   - [[https://github.com/chrisdone/ghci-ng][ghci-ng]] (Haskell)

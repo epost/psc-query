@@ -89,7 +89,7 @@ formatAtomProlog (Pred name xs) = formatPredNameProlog name ++ "(" ++ mkString "
 formatRulesProlog :: [Rule] -> String
 formatRulesProlog rules = mkString "\n" (formatRule <$> rules)
   where
-    formatRule (Rule head body) = (formatAtomProlog head) ++ " :- " ++ mkString ", " (fmap formatAtomProlog body) ++ "."
+    formatRule (Rule head body) = formatAtomProlog head ++ " :- " ++ mkString ", " (formatAtomProlog <$> body) ++ "."
 
 -- Datomic and Datascript formatters
 formatDatomic :: [Atom] -> String

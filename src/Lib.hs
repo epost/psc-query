@@ -1,22 +1,25 @@
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lib where
 
-import           Data.Char (toLower, toUpper)
-import           Data.List (intersperse, intercalate)
+import           Data.List (intercalate)
+import           Data.Monoid ((<>))
+import           Data.Text (Text, pack, unpack, toUpper)
 import           Language.PureScript.AST.Declarations hiding (Var)
 import           Language.PureScript.AST.SourcePos (SourceSpan(..), SourcePos(..))
 import qualified Language.PureScript.Environment as PE
 import           Language.PureScript.Names (ProperName(..), Ident(..), ModuleName(..))
 import qualified Language.PureScript.Parser as P
 
-
 -- TODO repeating 'Pred XxxP' instead of 'XxxP' seems a bit wordy
 -- TODO add Rule [Var] constructor
-data Atom = Pred PredName [Term]
+data Atom a = Pred PredName [Term a] deriving Functor
 
-data Term = Con String | Var String
+data Term a = Con a | Var a deriving Functor
 
--- TODO iso (Atom, Atom)
-data Rule = Rule { ruleHead :: Atom, ruleBody :: [Atom] }
+-- TODO iso (Atom a, Atom a)
+data Rule a = Rule { ruleHead :: Atom a, ruleBody :: [Atom a] } deriving Functor
 
 data PredName = ModP
               | DatP
@@ -27,12 +30,12 @@ data PredName = ModP
               | DefinedInStarP
                 deriving (Eq, Ord)
 
-type ModuleId = String
+type ModuleId = Text
 
 
 -- TODO model ConP (i.e. data constructors belonging under a certain data decl) using DefinedInP, or some other containment relationship
-factsFromModule :: Module -> [Atom]
-factsFromModule (Module _ (ModuleName properNames) decls _) =
+factsFromModule :: Module -> [Atom Text]
+factsFromModule (Module ss cmt (ModuleName properNames) decls _) =
      (Pred ModP [Con moduleName])
    : (map2 moduleFacts fqn)
   ++ (factsFromDecl moduleName =<< decls)
@@ -41,23 +44,18 @@ factsFromModule (Module _ (ModuleName properNames) decls _) =
     moduleName = head fqn -- TODO unsafe, clean up
     moduleFacts child parent = [Pred DefinedInP [Con child, Con parent], Pred ModP [Con parent]]
 
-
-factsFromDecl :: ModuleId -> Declaration -> [Atom]
-factsFromDecl modId (PositionedDeclaration (SourceSpan filename (SourcePos _ _) (SourcePos _ _))
-                                           _
-                                           (DataDeclaration dataDeclType (ProperName name) _ ctors))
+factsFromDecl :: ModuleId -> Declaration -> [Atom Text]
+factsFromDecl modId (DataDeclaration sourceAnn dataDeclType (ProperName name) _ ctors)
   = [ Pred (predicateFromDataDeclType dataDeclType) [Con name]
     , Pred DefinedInP [Con name, Con modId]
     ] ++
     (Pred ConP . (:[Con name]) <$> Con . runProperName . fst <$> ctors)
-
-factsFromDecl modId (PositionedDeclaration (SourceSpan filename0 (SourcePos _ _) (SourcePos _ _))
-                                           _
-                                           (ValueDeclaration (Ident ident) _ _ (Right (PositionedValue _ _ _))))
-  = [ Pred ValP [Con ident]
-    , Pred DefinedInP [Con ident, Con modId]
-    ]
-
+-- factsFromDecl modId (PositionedDeclaration (SourceSpan filename0 (SourcePos _ _) (SourcePos _ _))
+--                                            _
+--                                            (ValueDeclaration (Ident ident) _ _ (Right (PositionedValue _ _ _))))
+--   = [ Pred ValP [Con ident]
+--     , Pred DefinedInP [Con ident, Con modId]
+--     ]
 factsFromDecl _ _
   = []
 
@@ -68,7 +66,7 @@ predicateFromDataDeclType PE.Newtype = NewP
 
 -- defined_in*(X,Y) :- defined_in(X,Y)
 --                  :- defined_in(X,Z), defined_in*(Z,Y)
-definedInStar :: [Rule]
+definedInStar :: [Rule Text]
 definedInStar =
   let head = Pred DefinedInStarP [Var "x", Var "y"]
   in [ Rule head [ Pred DefinedInP [Var "x", Var "y"]]
@@ -80,30 +78,30 @@ definedInStar =
 -- formatters for various datalog/prolog dialects ------------------------------
 
 -- Prolog format is used by several datalog varieties.
-formatAtomsProlog :: [Atom] -> String
-formatAtomsProlog facts = (mkString ".\n" (formatAtomProlog <$> facts)) ++ "."
+formatAtomsProlog :: [Atom Text] -> Text
+formatAtomsProlog facts = (mkString ".\n" (formatAtomProlog <$> facts)) <> "."
 
-formatAtomProlog :: Atom -> String
-formatAtomProlog (Pred name xs) = formatPredNameProlog name ++ "(" ++ mkString ", " (formatTerm <$> xs) ++ ")"
+formatAtomProlog :: Atom Text -> Text
+formatAtomProlog (Pred name xs) = formatPredNameProlog name <> "(" <> mkString ", " (formatTerm <$> xs) <> ")"
 
-formatRulesProlog :: [Rule] -> String
+formatRulesProlog :: [Rule Text] -> Text
 formatRulesProlog rules = mkString "\n" (formatRule <$> rules)
   where
-    formatRule (Rule head body) = formatAtomProlog head ++ " :- " ++ mkString ", " (formatAtomProlog <$> body) ++ "."
+    formatRule (Rule head body) = formatAtomProlog head <> " :- " <> mkString ", " (formatAtomProlog <$> body) <> "."
 
 -- Datomic and Datascript formatters
-formatDatomic :: [Atom] -> String
-formatDatomic facts = "[\n  " ++ mkString "\n  " (formatAtom <$> facts) ++ "\n]"
+formatDatomic :: [Atom Text] -> Text
+formatDatomic facts = "[\n  " <> mkString "\n  " (formatAtom <$> facts) <> "\n]"
   where
-    formatAtom :: Atom -> String
-    formatAtom (Pred name xs) = ":" ++ formatPredNameProlog name ++ " " ++ (mkString " " (formatTerm <$> xs))
+    formatAtom :: Atom Text -> Text
+    formatAtom (Pred name xs) = ":" <> formatPredNameProlog name <> " " <> (mkString " " (formatTerm <$> xs))
 
-formatTerm :: Term -> String
-formatTerm (Con s) = "\"" ++ s ++ "\""
-formatTerm (Var s) = toUpper <$> s
+formatTerm :: Term Text -> Text
+formatTerm (Con s) = "\"" <> s <> "\""
+formatTerm (Var s) = toUpper s
 
 
-formatPredNameProlog :: PredName -> String
+formatPredNameProlog :: PredName -> Text
 formatPredNameProlog ModP           = "module"
 formatPredNameProlog DatP           = "data"
 formatPredNameProlog ConP           = "data_ctor"
@@ -112,8 +110,9 @@ formatPredNameProlog ValP           = "value"
 formatPredNameProlog DefinedInP     = "defined_in"
 formatPredNameProlog DefinedInStarP = "defined_in_star"
 
-mkString :: String -> [String] -> String
-mkString sep strs = intercalate sep strs
+-- TODO get rid of the packing and unpacking
+mkString :: Text -> [Text] -> Text
+mkString sep ts = pack $ intercalate (unpack sep) (unpack <$> ts)
 
 --------------------------------------------------------------------------------
 
@@ -123,7 +122,7 @@ map2 = map2' []
     map2' :: [b] -> (a -> a -> [b]) -> [a] -> [b]
     map2' bs f []           = bs
     map2' bs f [_]          = bs
-    map2' bs f (a0:a1:mods) = bs ++ map2' (f a0 a1) f (a1:mods)
+    map2' bs f (a0:a1:mods) = bs <> map2' (f a0 a1) f (a1:mods)
 
 --------------------------------------------------------------------------------
 
@@ -132,6 +131,6 @@ parseModuleFromFile :: FilePath -> IO Module
 parseModuleFromFile fp = do
   content <- readFile fp
   Right m <- return $ do
-    tokens <- P.lex fp content
+    tokens <- P.lex fp (pack content)
     P.runTokenParser "" P.parseModule tokens
   return m

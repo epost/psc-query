@@ -1,5 +1,5 @@
+import           Data.Text (unpack)
 import           Data.List (sortOn)
-import           Language.PureScript.AST.Declarations
 import           Lib
 
 main :: IO ()
@@ -9,10 +9,10 @@ main = do
   putStrLn $ show mod
   putStrLn ""
   putStrLn "% facts"
-  putStrLn . formatAtomsProlog . sortForProlog . factsFromModule $ mod
+  putStrLn . unpack . formatAtomsProlog . sortForProlog . factsFromModule $ mod
   putStrLn ""
   putStrLn "% rules"
-  putStrLn $ formatRulesProlog definedInStar
+  putStrLn . unpack . formatRulesProlog $ definedInStar
   -- putStrLn ""
   -- putStrLn $ (formatDatomic . factsFromModule $ mod)
   where

@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Lib where
 
@@ -99,15 +100,15 @@ formatTerm :: Term Text -> Text
 formatTerm (Con s) = "\"" <> s <> "\""
 formatTerm (Var s) = toUpper s
 
-
 formatPredNameProlog :: PredName -> Text
-formatPredNameProlog ModP           = "module"
-formatPredNameProlog DatP           = "data"
-formatPredNameProlog ConP           = "data_ctor"
-formatPredNameProlog NewP           = "newtype"
-formatPredNameProlog ValP           = "value"
-formatPredNameProlog DefinedInP     = "defined_in"
-formatPredNameProlog DefinedInStarP = "defined_in_star"
+formatPredNameProlog = \case
+  ModP           -> "module"
+  DatP           -> "data"
+  ConP           -> "data_ctor"
+  NewP           -> "newtype"
+  ValP           -> "value"
+  DefinedInP     -> "defined_in"
+  DefinedInStarP -> "defined_in_star"
 
 -- TODO get rid of the packing and unpacking
 intercalate :: Text -> [Text] -> Text

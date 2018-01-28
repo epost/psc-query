@@ -3,7 +3,7 @@
 
 module Lib where
 
-import           Data.List (intercalate)
+import qualified Data.List as List
 import           Data.Monoid ((<>))
 import           Data.Text (Text, pack, unpack, toUpper)
 import           Language.PureScript.AST.Declarations hiding (Var)
@@ -78,22 +78,22 @@ definedInStar =
 
 -- Prolog format is used by several datalog varieties.
 formatAtomsProlog :: [Atom Text] -> Text
-formatAtomsProlog facts = (mkString ".\n" (formatAtomProlog <$> facts)) <> "."
+formatAtomsProlog facts = (intercalate ".\n" (formatAtomProlog <$> facts)) <> "."
 
 formatAtomProlog :: Atom Text -> Text
-formatAtomProlog (Pred name xs) = formatPredNameProlog name <> "(" <> mkString ", " (formatTerm <$> xs) <> ")"
+formatAtomProlog (Pred name xs) = formatPredNameProlog name <> "(" <> intercalate ", " (formatTerm <$> xs) <> ")"
 
 formatRulesProlog :: [Rule Text] -> Text
-formatRulesProlog rules = mkString "\n" (formatRule <$> rules)
+formatRulesProlog rules = intercalate "\n" (formatRule <$> rules)
   where
-    formatRule (Rule head body) = formatAtomProlog head <> " :- " <> mkString ", " (formatAtomProlog <$> body) <> "."
+    formatRule (Rule head body) = formatAtomProlog head <> " :- " <> intercalate ", " (formatAtomProlog <$> body) <> "."
 
 -- Datomic and Datascript formatters
 formatDatomic :: [Atom Text] -> Text
-formatDatomic facts = "[\n  " <> mkString "\n  " (formatAtom <$> facts) <> "\n]"
+formatDatomic facts = "[\n  " <> intercalate "\n  " (formatAtom <$> facts) <> "\n]"
   where
     formatAtom :: Atom Text -> Text
-    formatAtom (Pred name xs) = ":" <> formatPredNameProlog name <> " " <> (mkString " " (formatTerm <$> xs))
+    formatAtom (Pred name xs) = ":" <> formatPredNameProlog name <> " " <> (intercalate " " (formatTerm <$> xs))
 
 formatTerm :: Term Text -> Text
 formatTerm (Con s) = "\"" <> s <> "\""
@@ -110,8 +110,8 @@ formatPredNameProlog DefinedInP     = "defined_in"
 formatPredNameProlog DefinedInStarP = "defined_in_star"
 
 -- TODO get rid of the packing and unpacking
-mkString :: Text -> [Text] -> Text
-mkString sep ts = pack $ intercalate (unpack sep) (unpack <$> ts)
+intercalate :: Text -> [Text] -> Text
+intercalate sep ts = pack $ List.intercalate (unpack sep) (unpack <$> ts)
 
 --------------------------------------------------------------------------------
 

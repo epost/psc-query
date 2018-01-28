@@ -45,19 +45,18 @@ factsFromModule (Module ss cmt (ModuleName properNames) decls _) =
     moduleFacts child parent = [Pred DefinedInP [Con child, Con parent], Pred ModP [Con parent]]
 
 factsFromDecl :: ModuleId -> Declaration -> [Atom Text]
-factsFromDecl modId (DataDeclaration sourceAnn dataDeclType (ProperName name) _ ctors)
-  = [ Pred (predicateFromDataDeclType dataDeclType) [Con name]
+factsFromDecl modId decl = case decl of
+  DataDeclaration sourceAnn dataDeclType (ProperName name) _ ctors ->
+    [ Pred (predicateFromDataDeclType dataDeclType) [Con name]
     , Pred DefinedInP [Con name, Con modId]
     ] ++
     (Pred ConP . (:[Con name]) <$> Con . runProperName . fst <$> ctors)
--- factsFromDecl modId (PositionedDeclaration (SourceSpan filename0 (SourcePos _ _) (SourcePos _ _))
---                                            _
---                                            (ValueDeclaration (Ident ident) _ _ (Right (PositionedValue _ _ _))))
---   = [ Pred ValP [Con ident]
---     , Pred DefinedInP [Con ident, Con modId]
---     ]
-factsFromDecl _ _
-  = []
+  ValueDeclaration (ValueDeclarationData sourceAnn (Ident ident) name binders expr) ->
+    [ Pred ValP [Con ident]
+    , Pred DefinedInP [Con ident, Con modId]
+    ]
+  _ ->
+    []
 
 predicateFromDataDeclType PE.Data    = DatP
 predicateFromDataDeclType PE.Newtype = NewP
